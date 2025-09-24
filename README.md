@@ -69,7 +69,7 @@ help
 pwd
 ls -l | grep '^d' > dirs.txt
 cat < dirs.txt | wc -l
-sleep 5 &     # background
+sleep 15 &     # background
 jobs
 fg 1
 export NAME=world
