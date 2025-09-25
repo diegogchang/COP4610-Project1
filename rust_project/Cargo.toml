@@ -1,0 +1,11 @@
+[package]
+name = "proj2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nix = { version = "0.28", features = ["process", "signal", "user", "fs"] }
+libc = "0.2"
+[[bin]]
+name = "shell"
+path = "src/main.rs"
