@@ -16,15 +16,29 @@
 static int setup_redirs(command_t *c) {
     if (c->infile) {
         int fd = open(c->infile, O_RDONLY);
-        if (fd < 0) { perror("open <"); return -1; }
-        if (dup2(fd, STDIN_FILENO) < 0) { perror("dup2 <"); close(fd); return -1; }
+        if (fd < 0) { 
+            fprintf(stderr, "minish: %s: %s\n", c->infile, strerror(errno));
+            return -1; 
+        }
+        if (dup2(fd, STDIN_FILENO) < 0) { 
+            perror("minish: dup2 input"); 
+            close(fd); 
+            return -1; 
+        }
         close(fd);
     }
     if (c->outfile) {
         int flags = O_WRONLY | O_CREAT | (c->append ? O_APPEND : O_TRUNC);
-        int fd = open(c->outfile, flags, 0644);
-        if (fd < 0) { perror("open >"); return -1; }
-        if (dup2(fd, STDOUT_FILENO) < 0) { perror("dup2 >"); close(fd); return -1; }
+        int fd = open(c->outfile, flags, 0600);
+        if (fd < 0) { 
+            fprintf(stderr, "minish: %s: %s\n", c->outfile, strerror(errno));
+            return -1; 
+        }
+        if (dup2(fd, STDOUT_FILENO) < 0) { 
+            perror("minish: dup2 output"); 
+            close(fd); 
+            return -1; 
+        }
         close(fd);
     }
     return 0;
@@ -40,12 +54,20 @@ static char **expand_globs(char **argv) {
         int r = glob(argv[i], GLOB_TILDE, NULL, &g);
         if (r == 0) {
             for (size_t k = 0; k < g.gl_pathc; ++k) {
-                if (outn + 2 >= outcap) { outcap *= 2; out = realloc(out, outcap * sizeof(char *)); if (!out) { perror("realloc"); exit(1); } }
+                if (outn + 2 >= outcap) { 
+                    outcap *= 2; 
+                    out = realloc(out, outcap * sizeof(char *)); 
+                    if (!out) { perror("realloc"); exit(1); } 
+                }
                 out[outn++] = xstrdup(g.gl_pathv[k]);
             }
             globfree(&g);
         } else {
-            if (outn + 2 >= outcap) { outcap *= 2; out = realloc(out, outcap * sizeof(char *)); if (!out) { perror("realloc"); exit(1); } }
+            if (outn + 2 >= outcap) { 
+                outcap *= 2; 
+                out = realloc(out, outcap * sizeof(char *)); 
+                if (!out) { perror("realloc"); exit(1); } 
+            }
             out[outn++] = xstrdup(argv[i]);
         }
     }
@@ -72,7 +94,15 @@ static void child_exec(command_t *c, int in_fd, int out_fd, pid_t pgid) {
     } else {
         char **expanded = expand_globs(c->argv);
         execvp(expanded[0], expanded);
-        perror("execvp");
+        
+        // Better error message for command not found
+        if (errno == ENOENT) {
+            fprintf(stderr, "minish: %s: command not found\n", expanded[0]);
+        } else if (errno == EACCES) {
+            fprintf(stderr, "minish: %s: permission denied\n", expanded[0]);
+        } else {
+            fprintf(stderr, "minish: %s: %s\n", expanded[0], strerror(errno));
+        }
         _exit(127);
     }
 }
@@ -92,12 +122,18 @@ int execute_pipeline(command_t *cmd, const char *orig_line) {
     while (c) {
         int out_fd = STDOUT_FILENO;
         if (c->next_pipe) {
-            if (pipe(pipefd) < 0) { perror("pipe"); return 1; }
+            if (pipe(pipefd) < 0) { 
+                perror("minish: pipe"); 
+                return 1; 
+            }
             out_fd = pipefd[1];
         }
 
         pid_t pid = fork();
-        if (pid < 0) { perror("fork"); return 1; }
+        if (pid < 0) { 
+            perror("minish: fork"); 
+            return 1; 
+        }
 
         if (pid == 0) {
             if (c->next_pipe) close(pipefd[0]);
@@ -114,7 +150,6 @@ int execute_pipeline(command_t *cmd, const char *orig_line) {
 
     if (cmd->background) {
         jobs_add(pgid, orig_line);
-        printf("[bg] started pgid=%d\n", (int)pgid);
         return 0;
     } else {
         int status = 0;

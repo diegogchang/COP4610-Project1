@@ -22,28 +22,62 @@ static void push_token(char ***arr, size_t *n, const char *tok) {
     (*arr)[*n] = NULL;
 }
 
-/* very simple ${VAR} expansion inside tokens */
+/* Enhanced environment variable expansion supporting both $VAR and ${VAR} */
 static void expand_env_inplace(char *s) {
-    char buf[4096]; buf[0] = '\0';
+    char buf[4096]; 
+    buf[0] = '\0';
     size_t i = 0;
 
     while (s[i] && strlen(buf) < sizeof(buf) - 2) {
-        if (s[i] == '$' && s[i + 1] == '{') {
-            size_t j = i + 2;
-            while (s[j] && s[j] != '}') j++;
-            if (s[j] == '}') {
+        if (s[i] == '$') {
+            if (s[i + 1] == '{') {
+                // Handle ${VAR} format
+                size_t j = i + 2;
+                while (s[j] && s[j] != '}') j++;
+                if (s[j] == '}') {
+                    char name[256];
+                    size_t len = j - (i + 2);
+                    if (len >= sizeof(name)) len = sizeof(name) - 1;
+                    memcpy(name, s + i + 2, len);
+                    name[len] = '\0';
+                    const char *val = getenv(name);
+                    if (!val) val = "";
+                    strncat(buf, val, sizeof(buf) - strlen(buf) - 1);
+                    i = j + 1;
+                    continue;
+                } else {
+                    // No closing brace, treat as literal
+                    char c[2] = { s[i], 0 };
+                    strncat(buf, c, sizeof(buf) - strlen(buf) - 1);
+                    i++;
+                    continue;
+                }
+            } else if (isalpha((unsigned char)s[i + 1]) || s[i + 1] == '_') {
+                // Handle $VAR format (alphanumeric + underscore)
+                size_t j = i + 1;
+                while (s[j] && (isalnum((unsigned char)s[j]) || s[j] == '_')) j++;
+                
                 char name[256];
-                size_t len = j - (i + 2);
+                size_t len = j - (i + 1);
                 if (len >= sizeof(name)) len = sizeof(name) - 1;
-                memcpy(name, s + i + 2, len);
+                memcpy(name, s + i + 1, len);
                 name[len] = '\0';
+                
                 const char *val = getenv(name);
                 if (!val) val = "";
                 strncat(buf, val, sizeof(buf) - strlen(buf) - 1);
-                i = j + 1;
+                i = j;
+                continue;
+            } else {
+                // $ followed by non-variable character, treat as literal
+                char c[2] = { s[i], 0 };
+                strncat(buf, c, sizeof(buf) - strlen(buf) - 1);
+                i++;
                 continue;
             }
         }
+        
+        // Regular character
         char c[2] = { s[i], 0 };
         strncat(buf, c, sizeof(buf) - strlen(buf) - 1);
         i++;
@@ -72,7 +106,7 @@ command_t *parse_line(const char *line) {
 
         if (s[i] == '|') {
             if (ntok == 0 && !cur->infile && !cur->outfile) {
-                fprintf(stderr, "syntax error near '|'\n");
+                fprintf(stderr, "minish: syntax error near '|'\n");
                 free(s); free_command(head); return NULL;
             }
             cur->argv = tokens; tokens = NULL; ntok = 0;
@@ -87,7 +121,10 @@ command_t *parse_line(const char *line) {
             if (out && i + 1 < n && s[i + 1] == '>') { append = 1; i += 2; }
             else { i++; }
             while (i < n && isspace((unsigned char)s[i])) i++;
-            if (i >= n) { fprintf(stderr, "syntax error: expected filename after redirection\n"); free(s); free_command(head); return NULL; }
+            if (i >= n) { 
+                fprintf(stderr, "minish: syntax error: expected filename after redirection\n"); 
+                free(s); free_command(head); return NULL; 
+            }
             size_t a = i;
             int inq = 0; char q = 0;
             while (i < n && (inq || (!isspace((unsigned char)s[i]) && s[i] != '|' && s[i] != '&'))) {
