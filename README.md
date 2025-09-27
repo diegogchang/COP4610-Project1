@@ -1,12 +1,8 @@
-Here’s a drop-in **README.md** you can paste over your current one. It matches the COP4610 rubric and documents the full **minish** project you built.
-
----
-
 # COP4610 Project 1: **minish** — A Minimal UNIX-like Shell
 
-## Overview
+# Overview
 
-**minish** is a small, portable command shell you run **inside a terminal** (Ubuntu, WSL, linprog). It parses commands, runs programs in `$PATH`, supports pipelines, redirection, background jobs, and several built-ins.
+**minish** is a small, portable command shell you run inside a terminal (Ubuntu, WSL, linprog). It parses commands, runs programs in `$PATH`, supports pipelines, redirection, background jobs, and several built-ins.
 
 ### Implemented Features
 
@@ -19,23 +15,15 @@ Here’s a drop-in **README.md** you can paste over your current one. It matches
 * **Env expansion** inside tokens: `${VAR}`
 * **Job table** with zombie reaping via `SIGCHLD`
 
-> Note: **minish is a shell, not a terminal**. You start it from your terminal; then `minish` reads and runs your commands.
-
----
-
 ## Repository Structure (per syllabus)
 
-```
 root/
-├── bin/          # executable output (generated; not committed)
+├── bin/          # executable output 
 ├── include/      # headers (.h)
-├── obj/          # object files (generated; not committed)
+├── obj/          # object files 
 ├── src/          # sources (.c)
 ├── Makefile
 └── README.md
-```
-
----
 
 ## How to Build & Run (Ubuntu/WSL/linprog)
 
@@ -77,8 +65,6 @@ echo hello ${NAME}
 exit          # or Ctrl-D to quit
 ```
 
----
-
 ## File Listing
 
 * `src/main.c` — entrypoint, REPL loop, signal hooks (`SIGINT` ignore, `SIGCHLD` reap)
@@ -91,8 +77,6 @@ exit          # or Ctrl-D to quit
 * `Makefile` — linprog-friendly, outputs to `bin/`, objects to `obj/`
 * `bin/` — generated executable `minish` (not committed)
 * `obj/` — generated `.o` files (not committed)
-
----
 
 ## Makefile Notes
 
@@ -112,16 +96,12 @@ exit          # or Ctrl-D to quit
   make memcheck  # run under valgrind (if installed)
   ```
 
----
-
 ## Known Bugs / Limitations (Documented)
 
 * **TTY job control** is minimal: `fg` waits on the process group, but no `tcsetpgrp()` / `Ctrl-Z` job suspension management.
 * **History / readline** not implemented (simple `getline` loop).
 * **Command substitution** like `$(...)` and backticks not implemented.
 * **Quoting** handles `'single'` and `"double"` quotes; no escapes inside quotes beyond closing quotes.
-
----
 
 ## Special Considerations for Grading
 
@@ -130,40 +110,53 @@ exit          # or Ctrl-D to quit
 * Source split is modular and passes strict warnings.
 * Tested on Ubuntu/WSL and configured to run on **linprog**.
 
----
+## Division of Labor 
 
-## Division of Labor (Before)
+**Part 1 Prompt** – Samuel Marcano
+**Part 2 Env Vars** – Francisco De La Espriella
+**Part 3 Tilde** – Diego Chang
+**Part 4 $PATH** – Francisco De La Espriella
+**Part 5 External Exec** – Diego Chang
+**Part 6 I/O Redirection** – Samuel Marcano
+**Part 7 Piping** – Francisco De La Espriella
+**Part 8 Background** – Diego Chang
+**Part 9 Internal Commands** – Samuel Marcano
 
-> Replace with your real names / FSUIDs.
+**Extra credit**
 
-* **Member A** — parser + redirection
-* **Member B** — executor + jobs
-* **Member C** — built-ins + README/QA
+Work divided by all 3 members
 
 ## Development Log (Each Member)
 
-* **Member A**
+* Samuel Marcano
 
-  * 2025-09-10: Implement parser for `| < > >> &` and env expansion
-* **Member B**
+2025-09-14: Implemented command prompt display (Part 1)
 
-  * 2025-09-10: Implement pipelines (`pipe`, `dup2`, `execvp`) and `SIGCHLD` reaping
-* **Member C**
+2025-09-21: Added I/O redirection handling (<, >, >>) (Part 6)
 
-  * 2025-09-11: Implement built-ins; wrote README; ran `valgrind`
+2025-09-25: Implemented internal commands (cd, exit, pwd, export/unset) (Part 9)
+
+* Francisco De La Espriella
+
+2025-09-14: Implemented environment variable expansion (Part 2)
+
+2025-09-15: Added $PATH search for executables (Part 4)
+
+2025-09-21: Implemented pipelines (pipe, dup2, execvp) (Part 7)
+
+* Diego Chang
+
+2025-09-14: Implemented tilde (~) expansion (Part 3)
+
+2025-09-16: Implemented external command execution (Part 5)
+
+2025-09-23: Added background process handling (&, SIGCHLD reaping) (Part 8)
 
 ## Group Meetings
 
-* 2025-09-10 (Discord, 30m): parser/executor API
-* 2025-09-12 (MCH 201, 45m): integration + tests
+* 2025-09-14 (Discord, 1h): Initial integration of Parts 1–3; discussed prompt, env var, and tilde expansion.
 
-## Division of Labor (After)
-
-* **Member A** — parser 40%
-* **Member B** — executor/jobs 40%
-* **Member C** — built-ins/docs 20%
-
----
+* 2025-09-21 (Dirac, 1.5h): Reviewed I/O redirection, PATH search, and external execution; ran first integration tests.
 
 ## Troubleshooting
 
@@ -175,26 +168,14 @@ exit          # or Ctrl-D to quit
   ```
 
 * **`execvp: No such file or directory` after typing `q`**
-  `q` is not a program. Use `exit` or Ctrl-D (or add a `q`/`quit` alias in `builtins.c` if you want).
+  `q` is not a program. Use `exit` or Ctrl-D 
 
 * **Linker error for `-lglob`**
   Remove it. Linux provides `glob()` in libc; `LDLIBS` should be empty.
 
----
 
 ## Extra Credit (Language Diversification)
 
-If you use **C** here, implement **another project** in **Rust** to qualify for the \~1–2% bonus per course policy. Note it in the final README for that project.
+Extra credit: Unix-like minish Shell recreated in RUST with same functionalities as C minish shell
 
----
-
-## Future Enhancements (optional)
-
-* `q`/`quit` aliases for `exit` (1-minute change in `builtins.c`)
-* Command history (readline) if allowed by the spec
-* Proper TTY job control (`tcsetpgrp`, `SIGTSTP` handling)
-* Unit tests for parser tokens
-
----
-
-If you want, I can also drop in the `q`/`quit` aliases and update this README accordingly.
+Rust Shell inside rust_project folder
