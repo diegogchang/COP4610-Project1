@@ -1,4 +1,4 @@
-# COP4610 Project <N>: <Short Title> (Rust)
+# COP4610 Project <N>: Extra Credit (Rust Shell)
 
 ## How to Compile & Run
 ```bash
@@ -11,6 +11,4 @@ make
 ./bin/proj2
 ```
 
-## Notes
-- Keep binaries out of the repository; only source and config files should be committed.
-- Fill in the same documentation sections as the C template (division of labor before/after, file listing, bugs, logs, meetings).
+
